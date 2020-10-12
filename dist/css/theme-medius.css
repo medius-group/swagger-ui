@@ -1,8 +1,17 @@
 @charset "UTF-8";
- .swagger-ui .topbar-wrapper img {
+ /*.swagger-ui .topbar-wrapper img {
   content:url('Medius-logo-Reverse-RGB.png');
   width: 130px;
   height: 30px;
+}*/
+.topbar-wrapper img[alt="Swagger UI"], .topbar-wrapper span {
+  visibility: collapse;
+}
+
+.topbar-wrapper .link:before {
+  content: url('Medius-logo-Reverse-RGB.png');
+  position: relative;
+  top: 3px;
 }
 
  .swagger-ui .opblock.opblock-post {
