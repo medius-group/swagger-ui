@@ -44,6 +44,9 @@
         defaultUrl = decodeURIComponent(defaultUrl[1]);
       } else {
         var location = window.location;
+        if(location.pathname.includes("/documentation")) {
+            defaultUrl = "https://api.medius.com/" + location.pathname.match(/(\w+)\/documentation/)[1] + "/swagger/stable";
+          }
         if(location.pathname.includes("/api/documentation")) {
             defaultUrl = "https://cloud.mediusflow.com/" + location.pathname.match(/(\w+)\/api\/documentation/)[1] + "/api/swagger/stable";
           } else {
