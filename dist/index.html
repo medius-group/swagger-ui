@@ -39,6 +39,10 @@
     <script>
     window.onload = function() {
 
+      var clientId = "swagger-ui";
+      var defaultScope = "Integration";
+      var appName = "Medius Cloud Suite";
+      
       var defaultUrl = window.location.search.match(/url=([^&]+)/);
       if (defaultUrl && defaultUrl.length > 1) {
         defaultUrl = decodeURIComponent(defaultUrl[1]);
@@ -55,7 +59,13 @@
             defaultUrl = "http://petstore.swagger.io/v2/swagger.json";
           }
       }
-
+      
+      if(defaultUrl.includes("suiteapi)) {
+         clientId = "api://medius-suite-dev";
+         defaultScope = "api://medius-suite-dev/SwaggerUI";
+         appName = "Medius Suite API";
+      }
+      
       // Begin Swagger UI call region
       const ui = SwaggerUIBundle({
         url: defaultUrl,
@@ -78,12 +88,12 @@
       // End Swagger UI call region
 
       ui.initOAuth({
-        clientId: "swagger-ui",
+        clientId: clientId,
         clientSecret: "your-client-secret-if-required",
         realm: "your-realms",
-        appName: "your-app-name",
+        appName: appName,
         scopeSeparator: " ",
-        scopes: "Integration",
+        scopes: defaultScope,
         additionalQueryStringParams: {test: "hello"},
         usePkceWithAuthorizationCodeGrant: true
       });
