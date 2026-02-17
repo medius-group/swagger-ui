@@ -60,10 +60,10 @@
           }
       }
       
-      if(defaultUrl.includes("suiteapi")) {
-         clientId = "api://medius-suite-dev";
-         defaultScope = "api://medius-suite-dev/SwaggerUI";
-         appName = "Medius Suite API";
+      if (defaultUrl.includes("suiteapi") || defaultUrl.includes("privateapi")) {
+        clientId = "api://medius-suite-dev";
+        defaultScope = "api://medius-suite-dev/SwaggerUI";
+        appName = "Medius Suite API";
       }
       
       // Begin Swagger UI call region
