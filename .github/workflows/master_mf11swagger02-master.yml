@@ -17,6 +17,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Optional: if you keep web.config outside dist, copy it in
+      - name: Copy web.config into dist
+        run: cp web.config dist/web.config
+
       - name: Deploy dist/ to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
