@@ -2,7 +2,8 @@ import React from "react"
 import { fromJS, Iterable } from "immutable"
 import PropTypes from "prop-types"
 import ImPropTypes from "react-immutable-proptypes"
-import { defaultStatusCode, getAcceptControllingResponse } from "core/utils"
+import { defaultStatusCode, getAcceptControllingResponse, isExtension } from "core/utils"
+import createHtmlReadyId from "core/utils/create-html-ready-id"
 
 export default class Responses extends React.Component {
   static propTypes = {
@@ -86,16 +87,23 @@ export default class Responses extends React.Component {
     const acceptControllingResponse = isSpecOAS3 ?
       getAcceptControllingResponse(responses) : null
 
-    return (
+    const nonExtensionResponses = responses.filter((_, key) => !isExtension(key))
+    const regionId = createHtmlReadyId(`${method}${path}_responses`)
+    const controlId = `${regionId}_select`
+
+    return (!nonExtensionResponses || !nonExtensionResponses.size) ? null : (
       <div className="responses-wrapper">
         <div className="opblock-section-header">
           <h4>Responses</h4>
-            { specSelectors.isOAS3() ? null : <label>
+            { specSelectors.isOAS3() ? null : <label htmlFor={controlId}>
               <span>Response content type</span>
               <ContentType value={producesValue}
-                         onChange={this.onChangeProducesWrapper}
+                         ariaControls={regionId}
+                         ariaLabel="Response content type"
+                         className="execute-content-type"
                          contentTypes={produces}
-                         className="execute-content-type"/>
+                         controlId={controlId}
+                         onChange={this.onChangeProducesWrapper} />
                      </label> }
         </div>
         <div className="responses-inner">
@@ -114,7 +122,7 @@ export default class Responses extends React.Component {
 
           }
 
-          <table className="responses-table">
+          <table aria-live="polite" className="responses-table" id={regionId} role="region">
             <thead>
               <tr className="responses-header">
                 <td className="col_header response-col_status">Code</td>
@@ -124,7 +132,7 @@ export default class Responses extends React.Component {
             </thead>
             <tbody>
               {
-                responses.entrySeq().map( ([code, response]) => {
+                nonExtensionResponses.entrySeq().map( ([code, response]) => {
 
                   let className = tryItOutResponse && tryItOutResponse.get("status") == code ? "response_current" : ""
                   return (

@@ -2,7 +2,8 @@ import React from "react"
 import URL from "url-parse"
 
 import PropTypes from "prop-types"
-import { sanitizeUrl, requiresValidationURL } from "core/utils"
+import { requiresValidationURL } from "core/utils"
+import { sanitizeUrl } from "core/utils/url"
 import win from "core/window"
 
 export default class OnlineValidatorBadge extends React.Component {
@@ -30,7 +31,7 @@ export default class OnlineValidatorBadge extends React.Component {
       return urlObject.toString()
     }
 
-    componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
         let { getConfigs } = nextProps
         let { validatorUrl } = getConfigs()
 
@@ -91,7 +92,7 @@ class ValidatorImage extends React.Component {
     img.src = this.props.src
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     if (nextProps.src !== this.props.src) {
       const img = new Image()
       img.onload = () => {

@@ -18,7 +18,7 @@ if (DomPurify.addHook) {
   })
 }
 
-function Markdown({ source, className = "", getConfigs }) {
+function Markdown({ source, className = "", getConfigs = () => ({ useUnsafeMarkdown: false }) }) {
   if (typeof source !== "string") {
     return null
   }
@@ -51,10 +51,6 @@ Markdown.propTypes = {
   getConfigs: PropTypes.func,
 }
 
-Markdown.defaultProps = {
-  getConfigs: () => ({ useUnsafeMarkdown: false }),
-}
-
 export default Markdown
 
 export function sanitizer(str, { useUnsafeMarkdown = false } = {}) {
@@ -68,7 +64,7 @@ export function sanitizer(str, { useUnsafeMarkdown = false } = {}) {
 
   return DomPurify.sanitize(str, {
     ADD_ATTR: ["target"],
-    FORBID_TAGS: ["style"],
+    FORBID_TAGS: ["style", "form"],
     ALLOW_DATA_ATTR,
     FORBID_ATTR,
   })

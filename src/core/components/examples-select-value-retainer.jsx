@@ -28,7 +28,7 @@ import { stringify } from "core/utils"
 
 // Note that `currentNamespace` isn't currently used anywhere!
 
-const stringifyUnlessList = input =>
+const stringifyUnlessList = (input) =>
   List.isList(input) ? input : stringify(input)
 
 export default class ExamplesSelectValueRetainer extends React.PureComponent {
@@ -36,23 +36,31 @@ export default class ExamplesSelectValueRetainer extends React.PureComponent {
     examples: ImPropTypes.map,
     onSelect: PropTypes.func,
     updateValue: PropTypes.func, // mechanism to update upstream value
+    userHasEditedBody: PropTypes.bool,
     getComponent: PropTypes.func.isRequired,
     currentUserInputValue: PropTypes.any,
     currentKey: PropTypes.string,
     currentNamespace: PropTypes.string,
+    setRetainRequestBodyValueFlag: PropTypes.func.isRequired,
     // (also proxies props for Examples)
   }
 
   static defaultProps = {
+    userHasEditedBody: false,
     examples: Map({}),
     currentNamespace: "__DEFAULT__NAMESPACE__",
+    setRetainRequestBodyValueFlag: () => {
+      // NOOP
+    },
     onSelect: (...args) =>
-      console.log( // eslint-disable-line no-console
+      // eslint-disable-next-line no-console
+      console.log(
         "ExamplesSelectValueRetainer: no `onSelect` function was provided",
         ...args
       ),
     updateValue: (...args) =>
-      console.log( // eslint-disable-line no-console
+      // eslint-disable-next-line no-console
+      console.log(
         "ExamplesSelectValueRetainer: no `updateValue` function was provided",
         ...args
       ),
@@ -72,9 +80,14 @@ export default class ExamplesSelectValueRetainer extends React.PureComponent {
         lastDownstreamValue: valueFromExample,
         isModifiedValueSelected:
           // valueFromExample !== undefined &&
+          this.props.userHasEditedBody ||
           this.props.currentUserInputValue !== valueFromExample,
       }),
     }
+  }
+
+  componentWillUnmount() {
+    this.props.setRetainRequestBodyValueFlag(false)
   }
 
   _getStateForCurrentNamespace = () => {
@@ -83,7 +96,7 @@ export default class ExamplesSelectValueRetainer extends React.PureComponent {
     return (this.state[currentNamespace] || Map()).toObject()
   }
 
-  _setStateForCurrentNamespace = obj => {
+  _setStateForCurrentNamespace = (obj) => {
     const { currentNamespace } = this.props
 
     return this._setStateForNamespace(currentNamespace, obj)
@@ -106,7 +119,7 @@ export default class ExamplesSelectValueRetainer extends React.PureComponent {
   }
 
   _getValueForExample = (exampleKey, props) => {
-    // props are accepted so that this can be used in componentWillReceiveProps,
+    // props are accepted so that this can be used in UNSAFE_componentWillReceiveProps,
     // which has access to `nextProps`
     const { examples } = props || this.props
     return stringifyUnlessList(
@@ -114,15 +127,16 @@ export default class ExamplesSelectValueRetainer extends React.PureComponent {
     )
   }
 
-  _getCurrentExampleValue = props => {
-    // props are accepted so that this can be used in componentWillReceiveProps,
+  _getCurrentExampleValue = (props) => {
+    // props are accepted so that this can be used in UNSAFE_componentWillReceiveProps,
     // which has access to `nextProps`
     const { currentKey } = props || this.props
     return this._getValueForExample(currentKey, props || this.props)
   }
 
   _onExamplesSelect = (key, { isSyntheticChange } = {}, ...otherArgs) => {
-    const { onSelect, updateValue, currentUserInputValue } = this.props
+    const { onSelect, updateValue, currentUserInputValue, userHasEditedBody } =
+      this.props
     const { lastUserEditedValue } = this._getStateForCurrentNamespace()
 
     const valueFromExample = this._getValueForExample(key)
@@ -141,9 +155,8 @@ export default class ExamplesSelectValueRetainer extends React.PureComponent {
     this._setStateForCurrentNamespace({
       lastDownstreamValue: valueFromExample,
       isModifiedValueSelected:
-        isSyntheticChange &&
-        !!currentUserInputValue &&
-        currentUserInputValue !== valueFromExample,
+        (isSyntheticChange && userHasEditedBody) ||
+        (!!currentUserInputValue && currentUserInputValue !== valueFromExample),
     })
 
     // we never want to send up value updates from synthetic changes
@@ -154,31 +167,41 @@ export default class ExamplesSelectValueRetainer extends React.PureComponent {
     }
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     // update `lastUserEditedValue` as new currentUserInput values come in
 
-    const { currentUserInputValue: newValue, examples, onSelect } = nextProps
-
     const {
-      lastUserEditedValue,
-      lastDownstreamValue,
-    } = this._getStateForCurrentNamespace()
+      currentUserInputValue: newValue,
+      examples,
+      onSelect,
+      userHasEditedBody,
+    } = nextProps
+
+    const { lastUserEditedValue, lastDownstreamValue } =
+      this._getStateForCurrentNamespace()
 
     const valueFromCurrentExample = this._getValueForExample(
       nextProps.currentKey,
       nextProps
     )
 
-    const exampleMatchingNewValue = examples.find(
-      example =>
-        example.get("value") === newValue ||
-        // sometimes data is stored as a string (e.g. in Request Bodies), so
-        // let's check against a stringified version of our example too
-        stringify(example.get("value")) === newValue
+    const examplesMatchingNewValue = examples.filter(
+      (example) =>
+        Map.isMap(example) &&
+        (example.get("value") === newValue ||
+          // sometimes data is stored as a string (e.g. in Request Bodies), so
+          // let's check against a stringified version of our example too
+          stringify(example.get("value")) === newValue)
     )
 
-    if (exampleMatchingNewValue) {
-      onSelect(examples.keyOf(exampleMatchingNewValue), {
+    if (examplesMatchingNewValue.size) {
+      let key
+      if (examplesMatchingNewValue.has(nextProps.currentKey)) {
+        key = nextProps.currentKey
+      } else {
+        key = examplesMatchingNewValue.keySeq().first()
+      }
+      onSelect(key, {
         isSyntheticChange: true,
       })
     } else if (
@@ -186,15 +209,23 @@ export default class ExamplesSelectValueRetainer extends React.PureComponent {
       newValue !== lastUserEditedValue && // value isn't already tracked
       newValue !== lastDownstreamValue // value isn't what we've seen on the other side
     ) {
+      this.props.setRetainRequestBodyValueFlag(true)
       this._setStateForNamespace(nextProps.currentNamespace, {
         lastUserEditedValue: nextProps.currentUserInputValue,
-        isModifiedValueSelected: newValue !== valueFromCurrentExample,
+        isModifiedValueSelected:
+          userHasEditedBody || newValue !== valueFromCurrentExample,
       })
     }
   }
 
   render() {
-    const { currentUserInputValue, examples, currentKey, getComponent } = this.props
+    const {
+      currentUserInputValue,
+      examples,
+      currentKey,
+      getComponent,
+      userHasEditedBody,
+    } = this.props
     const {
       lastDownstreamValue,
       lastUserEditedValue,
@@ -212,9 +243,10 @@ export default class ExamplesSelectValueRetainer extends React.PureComponent {
           !!lastUserEditedValue && lastUserEditedValue !== lastDownstreamValue
         }
         isValueModified={
-          currentUserInputValue !== undefined &&
-          isModifiedValueSelected &&
-          currentUserInputValue !== this._getCurrentExampleValue()
+          (currentUserInputValue !== undefined &&
+            isModifiedValueSelected &&
+            currentUserInputValue !== this._getCurrentExampleValue()) ||
+          userHasEditedBody
         }
       />
     )

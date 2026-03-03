@@ -1,12 +1,14 @@
 import { Map } from "immutable"
+import win from "core/window"
 import {
   authorizeRequest,
-  authorizeAccessCodeWithFormParams,  
+  authorizeAccessCodeWithFormParams,
   authorizeWithPersistOption,
   authorizeOauth2WithPersistOption,
   logoutWithPersistOption,
   persistAuthorizationIfNeeded
-} from "corePlugins/auth/actions"
+} from "core/plugins/auth/actions"
+import {authorizeAccessCodeWithBasicAuthentication, authPopup} from "../../../../../src/core/plugins/auth/actions"
 
 describe("auth plugin - actions", () => {
 
@@ -57,7 +59,7 @@ describe("auth plugin - actions", () => {
         },
         "http://specs/authorize"
       ],
-    ].forEach(([{oas3, server, effectiveServer, scheme, host, url}, expectedFetchUrl]) => {
+    ].forEach(([{ oas3, server, effectiveServer, scheme, host, url }, expectedFetchUrl]) => {
       it("should resolve authorization endpoint against the server URL", () => {
 
         // Given
@@ -71,6 +73,9 @@ describe("auth plugin - actions", () => {
           getConfigs: () => ({}),
           authSelectors: {
             getConfigs: () => ({})
+          },
+          errActions: {
+            newAuthErr: () => ({})
           },
           oas3Selectors: {
             selectedServer: () => server,
@@ -89,7 +94,7 @@ describe("auth plugin - actions", () => {
 
         // Then
         expect(system.fn.fetch.mock.calls.length).toEqual(1)
-        expect(system.fn.fetch.mock.calls[0][0]).toEqual(expect.objectContaining({url: expectedFetchUrl}))
+        expect(system.fn.fetch.mock.calls[0][0]).toEqual(expect.objectContaining({ url: expectedFetchUrl }))
       })
     })
 
@@ -110,6 +115,9 @@ describe("auth plugin - actions", () => {
               myCustomParam: "abc123"
             }
           })
+        },
+        errActions: {
+          newAuthErr: () => ({})
         },
         specSelectors: {
           isOAS3: () => false,
@@ -139,6 +147,9 @@ describe("auth plugin - actions", () => {
         fn: {
           fetch: jest.fn().mockImplementation(() => Promise.resolve())
         },
+        errActions: {
+          newAuthErr: () => ({})
+        },
         getConfigs: () => ({}),
         authSelectors: {
           getConfigs: () => ({
@@ -167,28 +178,33 @@ describe("auth plugin - actions", () => {
     })
   })
 
-  describe("tokenRequest", function() {
+  describe("tokenRequest", function () {
     it("should send the code verifier when set", () => {
-      const data = {
-        auth: {
-          schema: {
-            get: () => "http://tokenUrl"
+      const testCodeVerifierForAuthorizationCodeFlows = (flowAction) => {
+        const data = {
+          auth: {
+            schema: {
+              get: () => "http://tokenUrl",
+            },
+            codeVerifier: "mock_code_verifier",
           },
-          codeVerifier: "mock_code_verifier"
-        },
-        redirectUrl: "http://google.com"
+          redirectUrl: "http://google.com",
+        }
+
+        const authActions = {
+          authorizeRequest: jest.fn(),
+        }
+
+        flowAction(data)({ authActions })
+
+        expect(authActions.authorizeRequest.mock.calls.length).toEqual(1)
+        const actualArgument = authActions.authorizeRequest.mock.calls[0][0]
+        expect(actualArgument.body).toContain("code_verifier=" + data.auth.codeVerifier)
+        expect(actualArgument.body).toContain("grant_type=authorization_code")
       }
 
-      const authActions = {
-        authorizeRequest: jest.fn()
-      }
-
-      authorizeAccessCodeWithFormParams(data)({ authActions })
-
-      expect(authActions.authorizeRequest.mock.calls.length).toEqual(1)
-      const actualArgument = authActions.authorizeRequest.mock.calls[0][0]
-      expect(actualArgument.body).toContain("code_verifier=" + data.auth.codeVerifier)
-      expect(actualArgument.body).toContain("grant_type=authorization_code")
+      testCodeVerifierForAuthorizationCodeFlows(authorizeAccessCodeWithFormParams)
+      testCodeVerifierForAuthorizationCodeFlows(authorizeAccessCodeWithBasicAuthentication)
     })
   })
 
@@ -200,17 +216,17 @@ describe("auth plugin - actions", () => {
         const data = {
           "api_key": {}
         }
-        const system = {          
+        const system = {
           getConfigs: () => ({}),
           authActions: {
-            authorize: jest.fn(()=>{}),
-            persistAuthorizationIfNeeded: jest.fn(()=>{})
+            authorize: jest.fn(() => { }),
+            persistAuthorizationIfNeeded: jest.fn(() => { })
           }
         }
-  
+
         // When
         authorizeWithPersistOption(data)(system)
-  
+
         // Then
         expect(system.authActions.authorize).toHaveBeenCalled()
         expect(system.authActions.authorize).toHaveBeenCalledWith(data)
@@ -223,17 +239,17 @@ describe("auth plugin - actions", () => {
         const data = {
           "api_key": {}
         }
-        const system = {          
+        const system = {
           getConfigs: () => ({}),
           authActions: {
-            authorizeOauth2: jest.fn(()=>{}),
-            persistAuthorizationIfNeeded: jest.fn(()=>{})
+            authorizeOauth2: jest.fn(() => { }),
+            persistAuthorizationIfNeeded: jest.fn(() => { })
           }
         }
-  
+
         // When
         authorizeOauth2WithPersistOption(data)(system)
-  
+
         // Then
         expect(system.authActions.authorizeOauth2).toHaveBeenCalled()
         expect(system.authActions.authorizeOauth2).toHaveBeenCalledWith(data)
@@ -246,42 +262,42 @@ describe("auth plugin - actions", () => {
         const data = {
           "api_key": {}
         }
-        const system = {          
+        const system = {
           getConfigs: () => ({}),
           authActions: {
-            logout: jest.fn(()=>{}),
-            persistAuthorizationIfNeeded: jest.fn(()=>{})
+            logout: jest.fn(() => { }),
+            persistAuthorizationIfNeeded: jest.fn(() => { })
           }
         }
-  
+
         // When
         logoutWithPersistOption(data)(system)
-  
+
         // Then
         expect(system.authActions.logout).toHaveBeenCalled()
         expect(system.authActions.logout).toHaveBeenCalledWith(data)
         expect(system.authActions.persistAuthorizationIfNeeded).toHaveBeenCalled()
       })
-    })    
+    })
 
     describe("persistAuthorizationIfNeeded", () => {
       beforeEach(() => {
         localStorage.clear()
       })
       it("should skip if `persistAuthorization` is turned off", () => {
-        // Given        
-        const system = {          
+        // Given
+        const system = {
           getConfigs: () => ({
             persistAuthorization: false
-          }),          
+          }),
           authSelectors: {
-            authorized: jest.fn(()=>{})
+            authorized: jest.fn(() => { })
           }
         }
-  
+
         // When
         persistAuthorizationIfNeeded()(system)
-  
+
         // Then
         expect(system.authSelectors.authorized).not.toHaveBeenCalled()
       })
@@ -290,22 +306,39 @@ describe("auth plugin - actions", () => {
         const data = {
           "api_key": {}
         }
-        const system = {          
+        const system = {
           getConfigs: () => ({
             persistAuthorization: true
-          }),          
+          }),
+          errActions: {
+            newAuthErr: () => ({})
+          },
           authSelectors: {
-            authorized: jest.fn(()=>Map(data))
+            authorized: jest.fn(() => Map(data))
           }
-        }        
+        }
         jest.spyOn(Object.getPrototypeOf(window.localStorage), "setItem")
 
         // When
         persistAuthorizationIfNeeded()(system)
 
         expect(localStorage.setItem).toHaveBeenCalled()
-        expect(localStorage.setItem).toHaveBeenCalledWith("authorized", JSON.stringify(data))        
-  
+        expect(localStorage.setItem).toHaveBeenCalledWith("authorized", JSON.stringify(data))
+
+      })
+    })
+
+    describe("authPopup", () => {
+      beforeEach(() => {
+        win.open = jest.fn()
+      })
+      it("should call win.open with url", () => {
+        const windowOpenSpy = jest.spyOn(win, "open")
+
+        authPopup("http://swagger.ui", {})()
+
+        expect(windowOpenSpy.mock.calls.length).toEqual(1)
+        windowOpenSpy.mockReset()
       })
     })
 
