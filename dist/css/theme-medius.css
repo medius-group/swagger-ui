@@ -4,8 +4,11 @@
   width: 130px;
   height: 30px;
 }*/
-.topbar-wrapper .link img {
-  display: none;
+/* Hide Swagger branding */
+.swagger-ui .topbar .topbar-wrapper .link img,
+.swagger-ui .topbar .topbar-wrapper .link span,
+.swagger-ui .topbar .topbar-wrapper .link svg {
+  display: none !important;
 }
 
 .topbar-wrapper .link:before {
