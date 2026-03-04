@@ -4,8 +4,8 @@
   width: 130px;
   height: 30px;
 }*/
-.topbar-wrapper img[alt="Swagger UI"], .topbar-wrapper span {
-  visibility: collapse;
+.topbar-wrapper .link img {
+  display: none;
 }
 
 .topbar-wrapper .link:before {
