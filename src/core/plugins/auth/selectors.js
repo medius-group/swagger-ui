@@ -26,7 +26,15 @@ export const definitionsToAuthorize = createSelector(
     }
 )
 
-
+export const selectAuthPath =
+  (state, name) =>
+  ({ specSelectors }) =>
+    List(
+      specSelectors.isOAS3()
+        ? ["components", "securitySchemes", name]
+        : ["securityDefinitions", name]
+    )
+    
 export const getDefinitionsByNames = ( state, securities ) => ( { specSelectors } ) => {
   console.warn("WARNING: getDefinitionsByNames is deprecated and will be removed in the next major version.")
   let securityDefinitions = specSelectors.securityDefinitions()
@@ -61,9 +69,28 @@ export const getDefinitionsByNames = ( state, securities ) => ( { specSelectors 
 
 export const definitionsForRequirements = (state, securities = List()) => ({ authSelectors }) => {
   const allDefinitions = authSelectors.definitionsToAuthorize() || List()
-  return allDefinitions.filter((def) => {
-    return securities.some(sec => sec.get(def.keySeq().first()))
+  let result = List()
+  allDefinitions.forEach( (definition) => {
+    let security = securities.find(sec => sec.get(definition.keySeq().first()))
+    if ( security ) {
+      definition.forEach( (props, name) => {
+        if ( props.get("type") === "oauth2" ) {
+          const securityScopes = security.get(name)
+          let definitionScopes = props.get("scopes")
+          if( List.isList(securityScopes) && Map.isMap(definitionScopes) ) {
+            definitionScopes.keySeq().forEach( (key) => {
+              if ( !securityScopes.contains(key) ) {
+                definitionScopes = definitionScopes.delete(key)
+              }
+            })
+            definition = definition.set(name, props.set("scopes", definitionScopes))
+          }
+        }
+      })
+      result = result.push(definition)
+    }
   })
+  return result
 }
 
 export const authorized = createSelector(

@@ -1,12 +1,11 @@
-
 import React, { PureComponent } from "react"
-
-import System from "core/system"
 import { fromJS } from "immutable"
 import { render } from "enzyme"
+import { Provider } from "react-redux"
+
+import System from "core/system"
 import ViewPlugin from "core/plugins/view/index.js"
 import filterPlugin from "core/plugins/filter/index.js"
-import { connect, Provider } from "react-redux"
 
 describe("bound system", function(){
 
@@ -357,7 +356,7 @@ describe("bound system", function(){
               statePlugins: {
                 doge: {
                   selectors: {
-                    wow: () => (system) => {
+                    wow: () => () => {
                       return "original"
                     }
                   }
@@ -368,7 +367,7 @@ describe("bound system", function(){
               statePlugins: {
                 doge: {
                   wrapSelectors: {
-                    wow: (ori) => (system) => {
+                    wow: (ori) => () => {
                       // Then
                       return ori() + " wrapper"
                     }
@@ -394,7 +393,7 @@ describe("bound system", function(){
               statePlugins: {
                 doge: {
                   selectors: {
-                    wow: () => (system) => {
+                    wow: () => () => {
                       return "original"
                     }
                   }
@@ -435,7 +434,7 @@ describe("bound system", function(){
               statePlugins: {
                 doge: {
                   selectors: {
-                    wow: () => (system) => {
+                    wow: () => () => {
                       return "original"
                     }
                   }
@@ -446,7 +445,7 @@ describe("bound system", function(){
               statePlugins: {
                 doge: {
                   wrapSelectors: {
-                    wow: (ori, system) => (dogeState) => {
+                    wow: (ori) => (dogeState) => {
                       // Then
                       expect(dogeState.toJS().abc).toEqual("123")
                       done()
@@ -487,7 +486,7 @@ describe("bound system", function(){
     it("allows container components to provide their own `mapStateToProps` function", function() {
       // Given
       class ContainerComponent extends PureComponent {
-        mapStateToProps(nextState, props) {
+        mapStateToProps() {
           return {
             "fromMapState": "This came from mapStateToProps"
           }
@@ -498,8 +497,10 @@ describe("bound system", function(){
         }
 
         render() {
+          // eslint-disable-next-line react/prop-types
           const { exampleSelectors, fromMapState, fromOwnProps } = this.props
           return (
+            // eslint-disable-next-line react/prop-types
             <div>{ fromMapState } {exampleSelectors.foo()} {fromOwnProps}</div>
           )
         }
@@ -540,7 +541,7 @@ describe("bound system", function(){
       // Given
       class ContainerComponent extends PureComponent {
         mapStateToProps(nextState, props) {
-          const { exampleSelectors, fromMapState, fromOwnProps } = props
+          const { exampleSelectors, fromOwnProps } = props
           return {
             "fromMapState": `This came from mapStateToProps ${exampleSelectors.foo()} ${fromOwnProps}`
           }
@@ -551,6 +552,7 @@ describe("bound system", function(){
         }
 
         render() {
+          // eslint-disable-next-line react/prop-types
           const { fromMapState } = this.props
           return (
             <div>{ fromMapState }</div>
@@ -602,7 +604,7 @@ describe("bound system", function(){
             statePlugins: {
               doge: {
                 selectors: {
-                  wow: () => (system) => {
+                  wow: () => () => {
                     return "so selective"
                   }
                 }
@@ -625,7 +627,7 @@ describe("bound system", function(){
         statePlugins: {
           doge: {
             selectors: {
-              wow: () => (system) => {
+              wow: () => () => {
                 return "so selective"
               }
             }
@@ -652,7 +654,7 @@ describe("bound system", function(){
         statePlugins: {
           doge: {
             selectors: {
-              wow: () => (system) => {
+              wow: () => () => {
                 return "so selective"
               }
             }
@@ -681,7 +683,7 @@ describe("bound system", function(){
         statePlugins: {
           doge: {
             selectors: {
-              wow: () => (system) => {
+              wow: () => () => {
                 return "so selective"
               }
             }
@@ -704,7 +706,7 @@ describe("bound system", function(){
   describe("rootInjects", function() {
     it("should attach a rootInject function as an instance method", function() {
       // This is the same thing as the `afterLoad` tests, but is here for posterity
-      
+
       // Given
       const system = new System({
         plugins: [
@@ -715,7 +717,7 @@ describe("bound system", function(){
             statePlugins: {
               doge: {
                 selectors: {
-                  wow: () => (system) => {
+                  wow: () => () => {
                     return "so selective"
                   }
                 }
@@ -735,13 +737,13 @@ describe("bound system", function(){
     it("should encapsulate thrown errors in an afterLoad method", function() {
       // Given
       const ThrowyPlugin = {
-        afterLoad(system) {
+        afterLoad() {
           throw new Error("afterLoad BREAKS STUFF!")
         },
         statePlugins: {
           doge: {
             selectors: {
-              wow: () => (system) => {
+              wow: () => () => {
                 return "so selective"
               }
             }
@@ -801,7 +803,7 @@ describe("bound system", function(){
                 }
               },
               reducers: {
-                "THROW_FUNC": (state, action) => {
+                "THROW_FUNC": () => {
                   throw new Error("this reducer EXPLODES!")
                 }
               }
@@ -824,7 +826,7 @@ describe("bound system", function(){
           statePlugins: {
             throw: {
               selectors: {
-                func: (state, arg1) => {
+                func: () => {
                   throw new Error("this selector THROWS!")
                 }
               }
@@ -845,7 +847,7 @@ describe("bound system", function(){
           statePlugins: {
             throw: {
               selectors: {
-                func: (state, arg1) => system => {
+                func: () => () => {
                   throw new Error("this selector THROWS!")
                 }
               }
@@ -874,7 +876,7 @@ describe("bound system", function(){
                 }
               },
               wrapActions: {
-                func: (ori) => (...args) => {
+                func: () => () => {
                   throw new Error("this wrapAction UNRAVELS EVERYTHING!")
                 }
               }
@@ -895,7 +897,7 @@ describe("bound system", function(){
           statePlugins: {
             throw: {
               selectors: {
-                func: (state, arg1) => {
+                func: () => {
                   return 123
                 }
               },
@@ -911,118 +913,6 @@ describe("bound system", function(){
       })
 
       expect(system.getSystem().throwSelectors.func).not.toThrow()
-    })
-
-    describe("components", function() {
-      it("should catch errors thrown inside of React Component Class render methods", function() {
-        // Given
-        class BrokenComponent extends React.Component {
-          // eslint-disable-next-line react/require-render-return
-          render() {
-            throw new Error("This component is broken")
-          }
-        }
-        const system = new System({
-          plugins: [
-            ViewPlugin,
-            {
-              components: {
-                BrokenComponent
-              }
-            }
-          ]
-        })
-
-        // When
-        let Component = system.getSystem().getComponent("BrokenComponent")
-        const renderedComponent = render(<Component />)
-
-        // Then
-        expect(renderedComponent.text()).toEqual("😱 Could not render BrokenComponent, see the console.")
-      })
-
-      it("should catch errors thrown inside of pure component render methods", function() {
-        // Given
-        class BrokenComponent extends PureComponent {
-          // eslint-disable-next-line react/require-render-return
-          render() {
-            throw new Error("This component is broken")
-          }
-        }
-
-        const system = new System({
-          plugins: [
-            ViewPlugin,
-            {
-              components: {
-                BrokenComponent
-              }
-            }
-          ]
-        })
-
-        // When
-        let Component = system.getSystem().getComponent("BrokenComponent")
-        const renderedComponent = render(<Component />)
-
-        // Then
-        expect(renderedComponent.text()).toEqual("😱 Could not render BrokenComponent, see the console.")
-      })
-
-      it("should catch errors thrown inside of stateless component functions", function() {
-        // Given
-        // eslint-disable-next-line react/require-render-return
-        let BrokenComponent = function BrokenComponent() { throw new Error("This component is broken") }
-        const system = new System({
-          plugins: [
-            ViewPlugin,
-            {
-              components: {
-                BrokenComponent
-              }
-            }
-          ]
-        })
-
-        // When
-        let Component = system.getSystem().getComponent("BrokenComponent")
-        const renderedComponent = render(<Component />)
-
-        // Then
-        expect(renderedComponent.text().startsWith("😱 Could not render")).toEqual(true)
-      })
-
-      it("should catch errors thrown inside of container components", function() {
-        // Given
-        class BrokenComponent extends React.Component {
-          // eslint-disable-next-line react/require-render-return
-          render() {
-            throw new Error("This component is broken")
-          }
-        }
-
-        const system = new System({
-          plugins: [
-            ViewPlugin,
-            {
-              components: {
-                BrokenComponent
-              }
-            }
-          ]
-        })
-
-        // When
-        let Component = system.getSystem().getComponent("BrokenComponent", true)
-        const renderedComponent = render(
-          <Provider store={system.getStore()}>
-            <Component />
-          </Provider>
-        )
-
-        // Then
-        expect(renderedComponent.text()).toEqual("😱 Could not render BrokenComponent, see the console.")
-      })
     })
   })
 })

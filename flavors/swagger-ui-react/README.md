@@ -10,12 +10,30 @@ It has a few differences from the main version of Swagger UI:
 
 Versions of this module mirror the version of Swagger UI included in the distribution.
 
+## Anonymized analytics
+
+`swagger-ui-react` uses [Scarf](https://scarf.sh/) to collect [anonymized installation analytics](https://github.com/scarf-sh/scarf-js?tab=readme-ov-file#as-a-user-of-a-package-using-scarf-js-what-information-does-scarf-js-send-about-me). These analytics help support the maintainers of this library and ONLY run during installation. To [opt out](https://github.com/scarf-sh/scarf-js?tab=readme-ov-file#as-a-user-of-a-package-using-scarf-js-how-can-i-opt-out-of-analytics), you can set the `scarfSettings.enabled` field to `false` in your project's `package.json`:
+
+```
+// package.json
+{
+  // ...
+  "scarfSettings": {
+    "enabled": false
+  }
+  // ...
+}
+```
+
+Alternatively, you can set the environment variable `SCARF_ANALYTICS` to `false` as part of the environment that installs your npm packages, e.g., `SCARF_ANALYTICS=false npm install`.
+
+
 ## Quick start
 
 Install `swagger-ui-react`:
 
 ```
-$ npm i --save swagger-ui-react
+$ npm install swagger-ui-react
 ```
 
 Use it in your React application:
@@ -33,7 +51,7 @@ These props map to [Swagger UI configuration options](https://github.com/swagger
 
 #### `spec`: PropTypes.object
 
-An OpenAPI document respresented as a JavaScript object, JSON string, or YAML string for Swagger UI to display.
+An OpenAPI document represented as a JavaScript object, JSON string, or YAML string for Swagger UI to display.
 
 ⚠️ Don't use this in conjunction with `url` - unpredictable behavior may occur.
 
@@ -42,6 +60,12 @@ An OpenAPI document respresented as a JavaScript object, JSON string, or YAML st
 Remote URL to an OpenAPI document that Swagger UI will fetch, parse, and display.
 
 ⚠️ Don't use this in conjunction with `spec` - unpredictable behavior may occur.
+
+#### `layout`: PropTypes.string
+
+The name of a component available via the plugin system to use as the top-level layout for Swagger UI. The default value is `BaseLayout`.
+
+⚠️ This prop is currently only applied once, on mount. Changes to this prop's value will not be propagated to the underlying Swagger UI instance. A future version of this module will remove this limitation, and the change will not be considered a breaking change.
 
 #### `onComplete`: PropTypes.func
 
@@ -77,6 +101,13 @@ The default expansion depth for models (set to -1 completely hide the models).
 
 ⚠️ This prop is currently only applied once, on mount. Changes to this prop's value will not be propagated to the underlying Swagger UI instance. A future version of this module will remove this limitation, and the change will not be considered a breaking change.
 
+#### `defaultModelRendering`: PropTypes.oneOf(["example", "model"])
+
+Controls how the model is shown when the API is first rendered. (The user can always switch the rendering for a given model by clicking the 'Model' and 'Example Value' links.) The default value is 'example'.
+
+⚠️ This prop is currently only applied once, on mount. Changes to this prop's value will not be propagated to the underlying Swagger UI instance. A future version of this module will remove this limitation, and the change will not be considered a breaking change.
+
+
 #### `displayOperationId`: PropTypes.bool
 
 Controls the display of operationId in operations list. The default is false.
@@ -95,6 +126,18 @@ HTTP methods that have the Try it out feature enabled. An empty array disables T
 
 ⚠️ This prop is currently only applied once, on mount. Changes to this prop's value will not be propagated to the underlying Swagger UI instance. A future version of this module will remove this limitation, and the change will not be considered a breaking change.
 
+#### `showExtensions`: PropTypes.bool
+
+Controls the display of vendor extension (`x-`) fields and values for Operations, Parameters, Responses, and Schema.
+
+⚠️ This prop is currently only applied once, on mount. Changes to this prop's value will not be propagated to the underlying Swagger UI instance. A future version of this module will remove this limitation, and the change will not be considered a breaking change.
+
+#### `showCommonExtensions`: PropTypes.bool
+
+Controls the display of extensions (pattern, maxLength, minLength, maximum, minimum) fields and values for Parameters.
+
+⚠️ This prop is currently only applied once, on mount. Changes to this prop's value will not be propagated to the underlying Swagger UI instance. A future version of this module will remove this limitation, and the change will not be considered a breaking change.
+
 #### `showMutatedRequest`: PropTypes.bool
 
 If set to `true`, uses the mutated request returned from a requestInterceptor to produce the curl command in the UI, otherwise the request before the requestInterceptor was applied is used.
@@ -107,13 +150,71 @@ An array of functions that augment and modify Swagger UI's functionality. See Sw
 
 ⚠️ This prop is currently only applied once, on mount. Changes to this prop's value will not be propagated to the underlying Swagger UI instance. A future version of this module will remove this limitation, and the change will not be considered a breaking change.
 
+#### `tryItOutEnabled`: PropTypes.bool
+
+Controls whether the "Try it out" section should start enabled. The default is false.
+
+⚠️ This prop is currently only applied once, on mount. Changes to this prop's value will not be propagated to the underlying Swagger UI instance. A future version of this module will remove this limitation, and the change will not be considered a breaking change.
+
+#### `displayRequestDuration`: PropTypes.bool
+
+Controls the display of the request duration (in milliseconds) for "Try it out" requests. The default is false.
+
+#### `filter`: PropTypes.oneOfType([PropTypes.string, PropTypes.bool])
+
+If set, enables filtering. The top bar will show an edit box that you can use to filter the tagged operations that are shown. Can be Boolean to enable or disable, or a string, in which case filtering will be enabled using that string as the filter expression. Filtering is case sensitive matching the filter expression anywhere inside the tag. See Swagger UI's [Plug Points](https://github.com/swagger-api/swagger-ui/blob/master/docs/customization/plug-points.md#fnopsfilter) to customize the filtering behavior.
+
+#### `requestSnippetsEnabled`: PropTypes.bool,
+
+Enables the request snippet section. When disabled, the legacy curl snippet will be used. The default is false.
+
+⚠️ This prop is currently only applied once, on mount. Changes to this prop's value will not be propagated to the underlying Swagger UI instance. A future version of this module will remove this limitation, and the change will not be considered a breaking change.
+
+#### `requestSnippets`: PropTypes.object,
+
+Configures the request snippet core plugin. See Swagger UI's [Display Configuration](https://github.com/swagger-api/swagger-ui/blob/master/docs/usage/configuration.md#display) for more details.
+
+⚠️ This prop is currently only applied once, on mount. Changes to this prop's value will not be propagated to the underlying Swagger UI instance. A future version of this module will remove this limitation, and the change will not be considered a breaking change.
+
+#### `persistAuthorization`: PropTypes.bool
+
+If set, it persists authorization data and it would not be lost on browser close/refresh. The default is false.
+
+⚠️ This prop is currently only applied once, on mount. Changes to this prop's value will not be propagated to the underlying Swagger UI instance. A future version of this module will remove this limitation, and the change will not be considered a breaking change.
+
+#### `withCredentials`: PropTypes.bool
+
+If set to `true`, enables passing credentials, [as defined in the Fetch standard](https://fetch.spec.whatwg.org/#credentials), in CORS requests that are sent by the browser. Note that Swagger UI cannot currently set cookies cross-domain (see [swagger-js#1163](https://github.com/swagger-api/swagger-js/issues/1163)) - as a result, you will have to rely on browser-supplied cookies (which this setting enables sending) that Swagger UI cannot control.
+
+⚠️ This prop is currently only applied once, on mount. Changes to this prop's value will not be propagated to the underlying Swagger UI instance. A future version of this module will remove this limitation, and the change will not be considered a breaking change.
+
+#### `oauth2RedirectUrl`: PropTypes.string
+
+Redirect url given as parameter to the oauth2 provider. Default the url refers to oauth2-redirect.html at the same path as the Swagger UI is available.
+
+⚠️ This prop is currently only applied once, on mount. Changes to this prop's value will not be propagated to the underlying Swagger UI instance. A future version of this module will remove this limitation, and the change will not be considered a breaking change.
+
+#### `initialState`: PropTypes.object
+
+Passes initial values to the Swagger UI state.
+
+⚠️ This prop is currently only applied once, on mount. Changes to this prop's value will not be propagated to the underlying Swagger UI instance. A future version of this module will remove this limitation, and the change will not be considered a breaking change.
+
+
+#### `uncaughtExceptionHandler`: PropTypes.func
+
+Allows to define a custom uncaught exception handler. The default is `null`, which means that the default handler will be used. 
+The default handler will log the error to the console.
+
+⚠️ This prop is currently only applied once, on mount. Changes to this prop's value will not be propagated to the underlying Swagger UI instance. A future version of this module will remove this limitation, and the change will not be considered a breaking change.
+
+
 ## Limitations
 
 * Not all configuration bindings are available.
 * Some props are only applied on mount, and cannot be updated reliably.
 * OAuth redirection handling is not supported.
 * Topbar/Standalone mode is not supported.
-* Custom plugins are not supported.
 
 We intend to address these limitations based on user demand, so please open an issue or pull request if you have a specific request.
 

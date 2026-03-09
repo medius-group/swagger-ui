@@ -13,11 +13,12 @@ export default class RequestBodyEditor extends PureComponent {
     value: PropTypes.string,
     defaultValue: PropTypes.string,
     errors: PropTypes.array,
-  };
+  }
 
   static defaultProps = {
     onChange: NOOP,
-  };
+    userHasEditedBody: false,
+  }
 
   constructor(props, context) {
     super(props, context)
@@ -54,7 +55,7 @@ export default class RequestBodyEditor extends PureComponent {
     }, () => this.onChange(inputValue))
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     if(
       this.props.value !== nextProps.value &&
       nextProps.value !== this.state.value
@@ -65,7 +66,7 @@ export default class RequestBodyEditor extends PureComponent {
       })
     }
 
-    
+
 
     if(!nextProps.value && nextProps.defaultValue && !!this.state.value) {
       // if new value is falsy, we have a default, AND the falsy value didn't
@@ -77,7 +78,7 @@ export default class RequestBodyEditor extends PureComponent {
   render() {
     let {
       getComponent,
-      errors
+      errors,
     } = this.props
 
     let {

@@ -4,10 +4,13 @@ import ImPropTypes from "react-immutable-proptypes"
 
 export default class Auths extends React.Component {
   static propTypes = {
+    authorized: ImPropTypes.orderedMap.isRequired,
     schema: ImPropTypes.orderedMap.isRequired,
     name: PropTypes.string.isRequired,
+    getComponent: PropTypes.func.isRequired,
     onAuthChange: PropTypes.func.isRequired,
-    authorized: ImPropTypes.orderedMap.isRequired
+    errSelectors: PropTypes.object.isRequired,
+    authSelectors: PropTypes.object.isRequired,
   }
 
   render() {
@@ -17,7 +20,8 @@ export default class Auths extends React.Component {
       getComponent,
       onAuthChange,
       authorized,
-      errSelectors
+      errSelectors,
+      authSelectors
     } = this.props
     const ApiKeyAuth = getComponent("apiKeyAuth")
     const BasicAuth = getComponent("basicAuth")
@@ -33,7 +37,8 @@ export default class Auths extends React.Component {
                                         errSelectors={ errSelectors }
                                         authorized={ authorized }
                                         getComponent={ getComponent }
-                                        onChange={ onAuthChange } />
+                                        onChange={ onAuthChange }
+                                        authSelectors = { authSelectors } />
         break
       case "basic": authEl = <BasicAuth key={ name }
                                       schema={ schema }
@@ -41,7 +46,8 @@ export default class Auths extends React.Component {
                                       errSelectors={ errSelectors }
                                       authorized={ authorized }
                                       getComponent={ getComponent }
-                                      onChange={ onAuthChange } />
+                                      onChange={ onAuthChange }
+                                      authSelectors = { authSelectors } />
         break
       default: authEl = <div key={ name }>Unknown security definition type { type }</div>
     }
@@ -51,12 +57,4 @@ export default class Auths extends React.Component {
     </div>)
   }
 
-  static propTypes = {
-    errSelectors: PropTypes.object.isRequired,
-    getComponent: PropTypes.func.isRequired,
-    authSelectors: PropTypes.object.isRequired,
-    specSelectors: PropTypes.object.isRequired,
-    authActions: PropTypes.object.isRequired,
-    definitions: ImPropTypes.iterable.isRequired
-  }
 }

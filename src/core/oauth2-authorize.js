@@ -1,8 +1,9 @@
-import win from "core/window"
+import parseUrl from "url-parse"
 import Im from "immutable"
-import { btoa, sanitizeUrl, generateCodeVerifier, createCodeChallenge } from "core/utils"
+import { btoa, generateCodeVerifier, createCodeChallenge } from "core/utils"
+import { sanitizeUrl } from "core/utils/url"
 
-export default function authorize ( { auth, authActions, errActions, configs, authConfigs={} } ) {
+export default function authorize ( { auth, authActions, errActions, configs, authConfigs={}, currentServer } ) {
   let { schema, scopes, name, clientId } = auth
   let flow = schema.get("flow")
   let query = []
@@ -25,11 +26,13 @@ export default function authorize ( { auth, authActions, errActions, configs, au
       break
 
     case "clientCredentials":
+    case "client_credentials":
       // OAS3
       authActions.authorizeApplication(auth)
       return
 
     case "authorizationCode":
+    case "authorization_code":
       // OAS3
       query.push("response_type=code")
       break
@@ -60,7 +63,7 @@ export default function authorize ( { auth, authActions, errActions, configs, au
     scopesArray = scopes.toArray()
   }
 
-  if (scopesArray.length > 0)  {
+  if (scopesArray.length > 0) {
     let scopeSeparator = authConfigs.scopeSeparator || " "
 
     query.push("scope=" + encodeURIComponent(scopesArray.join(scopeSeparator)))
@@ -74,7 +77,7 @@ export default function authorize ( { auth, authActions, errActions, configs, au
     query.push("realm=" + encodeURIComponent(authConfigs.realm))
   }
 
-  if (flow === "authorizationCode" && authConfigs.usePkceWithAuthorizationCodeGrant) {
+  if ((flow === "authorizationCode" || flow === "authorization_code" || flow === "accessCode") && authConfigs.usePkceWithAuthorizationCodeGrant) {
       const codeVerifier = generateCodeVerifier()
       const codeChallenge = createCodeChallenge(codeVerifier)
 
@@ -95,8 +98,22 @@ export default function authorize ( { auth, authActions, errActions, configs, au
   }
 
   const authorizationUrl = schema.get("authorizationUrl")
-  const sanitizedAuthorizationUrl = sanitizeUrl(authorizationUrl)
-  let url = [sanitizedAuthorizationUrl, query.join("&")].join(authorizationUrl.indexOf("?") === -1 ? "?" : "&")
+  let sanitizedAuthorizationUrl
+  if (currentServer) {
+    // OpenAPI 3
+    sanitizedAuthorizationUrl = parseUrl(
+      sanitizeUrl(authorizationUrl),
+      currentServer,
+      true
+    ).toString()
+  } else {
+    sanitizedAuthorizationUrl = sanitizeUrl(authorizationUrl)
+  }
+  let url = [sanitizedAuthorizationUrl, query.join("&")].join(
+    typeof authorizationUrl === "string" && !authorizationUrl.includes("?")
+      ? "?"
+      : "&"
+  )
 
   // pass action authorizeOauth2 and authentication data through window
   // to authorize with oauth2
@@ -110,13 +127,11 @@ export default function authorize ( { auth, authActions, errActions, configs, au
     callback = authActions.authorizeAccessCodeWithFormParams
   }
 
-  win.swaggerUIRedirectOauth2 = {
+  authActions.authPopup(url, {
     auth: auth,
     state: state,
     redirectUrl: redirectUrl,
     callback: callback,
     errCb: errActions.newAuthErr
-  }
-
-  win.open(url)
+  })
 }
